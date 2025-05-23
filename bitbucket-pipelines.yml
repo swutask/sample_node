@@ -1,0 +1,106 @@
+definitions:
+  services:
+    push-image: &push-image
+      name: Build and Push Docker Image
+      image: atlassian/pipelines-awscli
+      caches:
+        - docker
+      services:
+        - docker
+      script:
+        - aws secretsmanager get-secret-value --secret-id complex/$ENV/env --query SecretString --output text >> .env.$ENV
+        - export BUILD_ID=$BITBUCKET_BRANCH_$BITBUCKET_COMMIT_$BITBUCKET_BUILD_NUMBER
+        - export DOCKER_URI=$DOCKER_IMAGE_URL:latest
+        # Login to docker registry on AWS
+        - eval $(aws ecr get-login --no-include-email)
+        # Build image
+        - docker build -t $DOCKER_URI -f Dockerfile.$ENV .
+        # Push image to private registry
+        - docker push $DOCKER_URI
+    run-migrations: &run-migrations
+      name: Run Migration task
+      image: atlassian/pipelines-awscli
+      script:
+        - aws ecs describe-task-definition --task-definition complex-$ENV --query taskDefinition > task-definition.json
+        - REVISION_NUMBER=$(cat task-definition.json | jq .revision)
+        - aws ecs run-task --task-definition complex-$ENV:$REVISION_NUMBER  --overrides '{"containerOverrides":[{"name":"complex-'$ENV'", "command":["node", "src/migrate.js"]}]}' --cluster helloivy-production
+
+    deploy-to-ecs: &deploy-to-ecs
+      name: Deploy to ECS
+      image: atlassian/pipelines-awscli
+      script:
+        - TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition ${TASK_DEFINITION_NAME})
+        - echo "$TASK_DEFINITION" | jq '.taskDefinition | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)' > task-definition.json
+        - pipe: atlassian/aws-ecs-deploy:1.12.1
+          variables:
+            AWS_ACCESS_KEY_ID: $AWS_ACCESS_KEY_ID
+            AWS_SECRET_ACCESS_KEY: $AWS_SECRET_ACCESS_KEY
+            AWS_DEFAULT_REGION: $AWS_DEFAULT_REGION
+            CLUSTER_NAME: 'helloivy-production'
+            SERVICE_NAME: '$TASK_DEFINITION_NAME-service'
+            TASK_DEFINITION: "task-definition.json"
+            FORCE_NEW_DEPLOYMENT: 'false'
+            WAIT: 'true'
+            DEBUG: 'false'
+
+pipelines:
+  branches:
+    production:
+      - step:
+          <<: *push-image
+          deployment: production-push
+      - step: 
+          <<: *run-migrations
+          deployment: production-migration
+      - parallel:
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: production-api
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: production-email-notification
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: production-activity
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: production-push-activity
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: production-email-activity
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: production-reminder
+
+    stage:
+      - step:
+          <<: *push-image
+          deployment: stage-push
+      - step: 
+          <<: *run-migrations
+          deployment: stage-migration
+      - parallel:
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: stage-api
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: stage-email-notification
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: stage-activity
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: stage-push-activity
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: stage-email-activity
+        - step: 
+            <<: *deploy-to-ecs
+            deployment: stage-reminder
+  # custom:
+  #   test:
+  #   - step:
+  #       name: Restore Test Database
+  #       script:
+  #         - bash restore_db.bash

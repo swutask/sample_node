@@ -1,0 +1,10 @@
+---
+- hosts: all
+  become: True
+  serial: 1
+  gather_facts: True
+  check_mode: no
+
+  roles:
+    - app
+  

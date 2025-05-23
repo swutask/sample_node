@@ -1,0 +1,7 @@
+{
+  "testRegex": ".*\\.e2e-spec\\.js",
+  "collectCoverage": false,
+  "rootDir": "../../",
+  "testEnvironment": "node",
+  "modulePaths": ["<rootDir>"]
+}

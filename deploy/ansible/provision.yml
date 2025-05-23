@@ -1,0 +1,76 @@
+---
+- hosts: all
+  become: yes
+  tasks: 
+  - name: Update and upgrade Ubuntu packages
+    apt:
+     upgrade: "yes"
+     update_cache: "yes"
+     #One day
+     cache_valid_time: 86400
+  - name: Install packages
+    apt:
+     update_cache: "yes"
+     pkg:
+     - curl
+     - htop
+     - nload
+     - p7zip-full
+     - git
+     - build-essential
+     - gcc
+     - g++
+     - make
+     - postgresql-client
+     - libpq-dev
+     - redis-tools
+     - landscape-common
+     - libfontconfig
+  - name: Install the gpg key for nodejs LTS
+    apt_key:
+     url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+     state: present   
+  - name: Adding nodejs repo
+    apt_repository:
+      repo: deb https://deb.nodesource.com/{{ node_version }} {{ ansible_distribution_release }}    main
+      state: present 
+  - name: Adding nodejs repo-src
+    apt_repository:
+      repo: deb-src https://deb.nodesource.com/{{ node_version }} {{ ansible_distribution_release }} main
+      state: present
+  - name: Install the nodejs
+    apt:
+     name: nodejs
+     state: present
+     update_cache: yes
+  - name: Install pm2 package globally.
+    npm:
+      name: pm2
+      global: yes
+  - name: Remove useless packages from the cache
+    apt:
+     autoclean: yes
+  - name: Remove dependencies that are no longer required
+    apt:
+     autoremove: yes
+  - name: Ensure .ssh directory exists.
+    file: 
+      dest: "{{ dest_key | dirname }}"
+      mode: 0700 
+      #owner: user 
+      state: directory
+  - name: Install ssh key
+    copy: 
+      src:  "keys/deploy_key"
+      dest: "{{ dest_key }}"
+      mode: 0600
+      #owner: user
+  - name: Set up authorized keys
+    authorized_key:
+      user: ubuntu
+      state: present
+      key: '{{ item }}'
+    with_file:
+      - keys/devops_key.pub
+      - keys/dev_key.pub
+      - keys/bitbucket_key.pub

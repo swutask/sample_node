@@ -1,0 +1,28 @@
+---  
+  - name: save state
+    command: pm2 save
+    args:
+     chdir: "{{ backend_path }}"
+    notify: startup pm2
+
+  - name: startup pm2
+    command: pm2 startup
+    args:
+     chdir: "{{ backend_path }}" 
+
+  - name: execute rc.local
+    service: name=rc.local state=started
+
+  - name: check health
+    uri:
+      url: http://localhost:3001/api/health
+      return_content: yes
+    register: health
+    failed_when: "'OK' not in health.content"
+    notify: save state
+    when: check_health|default(False)|bool
+
+  - name: restart nginx
+    service:
+      name: nginx
+      state: restarted

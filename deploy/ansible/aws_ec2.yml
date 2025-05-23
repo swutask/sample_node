@@ -1,0 +1,9 @@
+plugin: aws_ec2
+regions:
+  - eu-central-1
+filters:
+  tag:Environment: production
+strict: False
+keyed_groups:
+  - prefix: instance_type
+    key: instance_type

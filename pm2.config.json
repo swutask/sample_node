@@ -1,0 +1,72 @@
+{
+    "apps": [
+      {
+        "name": "api.helloivy.co:3001",
+        "script": "npm",
+        "args": ["run", "production"],
+        "max_restarts": 10,
+        "watch": false,
+        "merge_logs": true,
+        "kill_timeout": 6000,
+        "wait_ready": true,
+        "error_file": "err.log",
+        "out_file": "out.log",
+        "log_file": "combined.log",
+        "env": {
+          "PORT": 3001,
+          "NODE_ENV": "production"
+        }
+      },
+      {
+        "name": "api.helloivy.co:4001",
+        "script": "npm",
+        "args": ["run", "production"],
+        "max_restarts": 10,
+        "watch": false,
+        "merge_logs": true,
+        "kill_timeout": 6000,
+        "wait_ready": true,
+        "error_file": "err.log",
+        "out_file": "out.log",
+        "log_file": "combined.log",
+        "env": {
+          "PORT": 4001,
+          "NODE_ENV": "production"
+        }
+      },
+      {
+        "name": "api.helloivy.co:5001",
+        "script": "npm",
+        "args": ["run", "production"],
+        "max_restarts": 10,
+        "watch": false,
+        "merge_logs": true,
+        "kill_timeout": 6000,
+        "wait_ready": true,
+        "error_file": "err.log",
+        "out_file": "out.log",
+        "log_file": "combined.log",
+        "env": {
+          "PORT": 5001,
+          "NODE_ENV": "production"
+        }
+      },
+      {
+        "name": "api.helloivy.co:6001",
+        "script": "npm",
+        "args": ["run", "production"],
+        "max_restarts": 10,
+        "watch": false,
+        "merge_logs": true,
+        "kill_timeout": 6000,
+        "wait_ready": true,
+        "error_file": "err.log",
+        "out_file": "out.log",
+        "log_file": "combined.log",
+        "env": {
+          "PORT": 6001,
+          "NODE_ENV": "production"
+        }
+      }
+    ]
+  }
