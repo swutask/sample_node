@@ -1,0 +1,53 @@
+config:
+  target: https://stageapi.complex.so
+  processor: ./processor.js
+  phases:
+    - duration: 30
+      arrivalRate: 1
+  variables:
+    thinkTime: 5
+scenarios:
+  - flow:
+    - function: getData
+    - log: "Register {{ email }} : {{ password }}"
+    - post:
+        url: /api/auth/register
+        headers:
+          content-type: application/json
+        json:
+          email: "{{ email }}"
+          password: "{{ password }}"
+          firstName: "{{ firstName }}"
+          lastName: "{{ lastName }}"
+        afterResponse: afterResponseHandler
+    - think: "{{ thinkTime }}"
+    - log: "Logout {{ email }} : {{ password }}"
+    - get:
+        url: /api/auth/logout
+    - think: "{{ thinkTime }}"
+    - log: "Login {{ email }} : {{ password }}"
+    - post:
+        url: /api/auth/login
+        headers:
+          content-type: application/json
+        json:
+          email: "{{ email }}"
+          password: "{{ password }}"
+        afterResponse: afterResponseHandler
+    - think: "{{ thinkTime }}"
+    - log: "Profile"
+    - get:
+        url: /api/profile
+        headers:
+          Auth: "{{ jwt }}"
+    - think: "{{ thinkTime }}"
+    - log: "Create Book"
+    - post:
+        url: /api/books
+        headers:
+          content-type: application/json
+          Auth: "{{ jwt }}"
+        json:
+          title: "{{ bookTitle }}"
+          subTitle: "{{ bookSubTitle }}"
+    - think: "{{ thinkTime }}"

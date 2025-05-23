@@ -1,0 +1,57 @@
+version: "3.8"
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.e2e.api
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./:/usr/src/app
+      - /usr/src/app/node_modules/
+    command: ['npm', 'run', 'start:e2e']
+
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+
+  redis:
+    image: 'bitnami/redis:latest'
+    ports:
+      - ${REDIS_PORT}:6379
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      - AWS_DEFAULT_REGION=us-east-1
+      - EDGE_PORT=4566
+      - SERVICES=sqs
+      - DEBUG=0
+    volumes:
+      - "./localstack_scripts/init.sh:/etc/localstack/init/ready.d/init.sh"
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.16.2
+    hostname: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - logger.level=WARN
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    networks:
+      - default
+
+  test:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.e2e.test
+    command: './wait-for-it.sh postgres:5432 -- ./wait-for-it.sh redis:6379 -- ./wait-for-it.sh localstack:4566 -- ./wait-for-it.sh elasticsearch:9200 -- ./wait-for-it.sh api:3000 -- bash -c "NODE_ENV=e2e TZ=UTC node test/e2e/seed.js && npm run prepare:e2e && ./node_modules/.bin/jest --config test/e2e/jest-e2e.json --verbose --forceExit --detectOpenHandles --runInBand"'

@@ -1,0 +1,26 @@
+FROM ubuntu:22.04 AS base
+WORKDIR /usr/src/app
+
+RUN apt-get update && \
+    apt-get install -y build-essential wget libpq-dev curl && curl -sL https://deb.nodesource.com/setup_18.x -o nodesource_setup.sh && bash nodesource_setup.sh && \
+    apt install nodejs -y && node -v
+
+COPY package*.json ./
+
+FROM base AS dependencies
+
+RUN npm set progress=false && npm config set depth 0
+RUN npm ci && npm cache clean --force
+
+RUN cp -R node_modules prod_node_modules
+
+FROM base AS release
+COPY --from=dependencies /usr/src/app/prod_node_modules ./node_modules
+
+COPY . .
+
+ARG NODE_ENV=stage
+ENV NODE_ENV=${NODE_ENV}
+ENV TZ=UTC
+
+CMD [ "node", "index.js" ]

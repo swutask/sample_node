@@ -1,0 +1,13 @@
+---
+setup_git_repo: true
+check_health: true
+db_host: "localhost"
+db_name: "test"
+db_user: "administrator"
+db_pass: "password"
+db_port: "27017"
+sengrid_api: "SG.API"
+env_source_config: ".env.j2"
+env_dest_config: "{{ backend_path }}/.env.{{ node_env }}"
+backend_src_config: "config.js.j2"
+backend_dest_config: "{{ backend_path }}/config/{{ node_env }}.js"

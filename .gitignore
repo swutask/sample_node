@@ -1,0 +1,44 @@
+.db
+.es
+.localstack
+.vscode
+.idea
+**/node_modules
+**/.env.*
+!.env.example
+src/config/*
+!src/config/config.template.js
+!src/config/index.js
+!src/config/development.js
+!src/config/production.js
+!src/config/stage.js
+!src/config/e2e.js
+!src/config/plans
+
+tiptap-store-dev
+
+.npmrc
+*.DS_Store
+deploy/ansible/pass
+!deploy/ansible/roles/app/templates/*.env.*
+# For Terraform
+# Local .terraform directories
+**/.terraform/*
+**/.terragrunt/*
+**/.terragrunt-cache*
+# .tfstate files
+*.tfstate
+*.tfstate.*
+crash.log
+
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+*.secret
+deploy/terrafrom/envairment.secrets
+*.secrets
+
+report.json

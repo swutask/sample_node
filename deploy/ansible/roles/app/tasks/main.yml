@@ -1,0 +1,68 @@
+---
+- name: Install npm packages and git
+  block:
+    - name: Setup the Git repo
+      git: repo={{ git_repo }}
+           version={{ git_branch }}
+           dest={{ backend_path }}
+           key_file={{ source_key }}
+           accept_hostkey=yes
+           force=yes
+      when: setup_git_repo is defined and setup_git_repo
+      register: source
+      tags: git
+    - name: Delete npmrc
+      file:
+        path: "{{ backend_path }}/.npmrc"
+        state: absent
+    - name: Install npm packages
+      shell: "sudo npm ci"
+      args:
+        chdir: "{{ backend_path }}"
+      become: true
+    - name: Adding env for app
+      template:
+       src: "{{ env_source_config }}"
+       dest: "{{ env_dest_config }}"
+       owner: root
+       group: root
+       mode: 0644
+      tags: config
+    - name: Adding config for app
+      template:
+       src: "{{ backend_src_config }}"
+       dest: "{{ backend_dest_config }}"
+       owner: root
+       group: root
+       mode: 0644
+      tags: config
+    - name: Run Migrations
+      run_once: true
+      #delegate_to: "{{ groups['instance_type'] | first }}"
+      shell: "npm run production-migrate"
+      args:
+        chdir: "{{ backend_path }}"
+      register: migrations
+    - name: Migrations info 
+      debug:
+        msg: "{{ migrations.stdout_lines }}"
+    - name: stop previous application
+      command: pm2 stop all
+      ignore_errors: yes 
+    - name: delete previous application
+      command: pm2 delete all
+      ignore_errors: yes
+    - name: start new application
+      command: pm2 start pm2.config.json --only "api.helloivy.co:3001"
+      args:
+        chdir: "{{ backend_path }}"
+      notify: 
+        - check health
+        - save state
+
+  rescue:
+    - name: fail the playbook as the task was not successful
+      fail:
+        msg: "The task was not successful. Aborting."
+
+
